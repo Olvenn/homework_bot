@@ -47,26 +47,23 @@ def check_tokens():
     # logging.info('Проверка наличия токенов')
     # return all(environment_variables)
     logging.info('Проверка наличия всех токенов')
-    print(PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
     return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def send_message(bot, message):
-    """Отправляет сообщение в Telegram чат.
-    """
+    """Отправляет сообщение в Telegram чат."""
     try:
-        logging.info(f'Сообщение {message} отправлено в чат %s')
         bot.send_message(
             chat_id=TELEGRAM_CHAT_ID,
             text=message
         )
+        logging.info(f'Сообщение {message} отправлено в чат %s')
     except Exception as error:
-        logging.error(error)
+        logging.error((f'Ошибка отправки сообщения {error}'))
 
 
 def get_api_answer(timestamp):
-    """Делает запрос к эндпоинту API-сервиса.
-    """
+    """Делает запрос к эндпоинту API-сервиса."""
     current_timestamp = timestamp or int(time.time())
     params = {'from_date': current_timestamp}
     try:
@@ -89,8 +86,12 @@ def get_api_answer(timestamp):
 
 
 def check_response(response):
+    """Проверяет ответ API на корректность."""
     homeworks = response['homeworks']
     current_date = response['current_date']
+
+    if len(response['homeworks']) == 0:
+        return []
 
     if type(response['homeworks']) != dict:
         message = 'Не верный формат ответа.'
@@ -122,26 +123,51 @@ def check_response(response):
 
 def parse_status(homework):
     """Возвращает статут домашней работы."""
-    homework_name = homework['homework_name']
-    homework_status = homework['status']
-    verdict = HOMEWORK_VERDICTS[homework_status]
-
-    if 'homeworks' not in homework:
-        message = 'Отсутствует значение по ключу homework_name'
+    if 'homework_name' not in homework:
+        message = 'Отсутствует значение по ключу homework_name'        
         logging.error(message)
         raise KeyError(message)
 
     if 'status' not in homework:
-        message = 'Отсутствует значение по ключу statu'
+        message = 'Отсутствует значение по ключу status'      
         logging.error(message)
         raise KeyError(message)
+
+    homework_name = homework['homework_name']
+    homework_status = homework['status']
 
     if homework_status not in HOMEWORK_VERDICTS:
-        message = 'Полученный статус отсутствует в списке HOMEWORK_VERDICTS.'
+        message = 'Полученный статус отсутствует в списке HOMEWORK_VERDICTS.'  
         logging.error(message)
         raise KeyError(message)
 
+    verdict = HOMEWORK_VERDICTS[homework_status]
+    logging.debug('Изменился статус проверки.')
+
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+
+# def parse_status(homework):
+#     """Возвращает статут домашней работы."""
+#     homework_name = homework['homework_name']
+
+#     if 'homework_name' not in homework:
+#         message = 'Отсутствует значение по ключу homework_name'
+#         logging.error(message)
+#         raise KeyError(message)
+
+#     if 'status' not in homework:
+#         message = 'Отсутствует значение по ключу statu'
+#         logging.error(message)
+#         raise KeyError(message)
+#     homework_status = homework['status']
+#     verdict = HOMEWORK_VERDICTS[homework_status]
+    
+#     if homework_status not in HOMEWORK_VERDICTS:
+#         message = 'Полученный статус отсутствует в списке HOMEWORK_VERDICTS.'
+#         logging.error(message)
+#         raise KeyError(message)
+
+#     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
@@ -153,6 +179,8 @@ def main():
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
+    prev_message = ''
+    # prev_status = ''
 
     while True:
         try:
@@ -161,19 +189,24 @@ def main():
 
             if homeworks:
                 message = parse_status(homeworks[0])
-                send_message(bot, message)
+                if prev_message != message:
+                    send_message(bot, message)
+                    prev_message = message
+                    logging.debug(message)
             else:
                 message = 'Нет новых статусов.'
                 timestamp = response.get(
-                    'current_date', int(time.time()) - RETRY_PERIOD)
+                    'current_date', int(time.time()))
                 logging.debug(message)
+
+            timestamp = int(time.time())
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
             logging.error(message)
-        finally:
-            time.sleep(RETRY_PERIOD)
+
+        time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
