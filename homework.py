@@ -101,12 +101,12 @@ def check_response(response):
 def parse_status(homework):
     """Возвращает статут домашней работы."""
     if 'homework_name' not in homework:
-        message = 'Отсутствует значение по ключу homework_name'        
+        message = 'Отсутствует значение по ключу homework_name'
         logging.error(message)
         raise KeyError(message)
 
     if 'status' not in homework:
-        message = 'Отсутствует значение по ключу status'      
+        message = 'Отсутствует значение по ключу status'
         logging.error(message)
         raise KeyError(message)
 
@@ -114,7 +114,7 @@ def parse_status(homework):
     homework_status = homework['status']
 
     if homework_status not in HOMEWORK_VERDICTS:
-        message = 'Полученный статус отсутствует в списке HOMEWORK_VERDICTS.'  
+        message = 'Полученный статус отсутствует в списке HOMEWORK_VERDICTS.'
         logging.error(message)
         raise KeyError(message)
 
