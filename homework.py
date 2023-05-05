@@ -39,13 +39,6 @@ def check_tokens():
     """Проверяем, наличе всех токенов.
     Если нет хотя бы одного, то останавливаем бота.
     """
-    # environment_variables = [
-    #     PRACTICUM_TOKEN,
-    #     TELEGRAM_TOKEN,
-    #     TELEGRAM_CHAT_ID
-    # ]
-    # logging.info('Проверка наличия токенов')
-    # return all(environment_variables)
     logging.info('Проверка наличия всех токенов')
     return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
@@ -57,7 +50,7 @@ def send_message(bot, message):
             chat_id=TELEGRAM_CHAT_ID,
             text=message
         )
-        logging.info(f'Сообщение {message} отправлено в чат %s')
+        logging.debug(f'Сообщение {message} отправлено в чат %s')
     except Exception as error:
         logging.error((f'Ошибка отправки сообщения {error}'))
 
@@ -87,37 +80,21 @@ def get_api_answer(timestamp):
 
 def check_response(response):
     """Проверяет ответ API на корректность."""
-    homeworks = response['homeworks']
-    current_date = response['current_date']
-
-    if len(response['homeworks']) == 0:
-        return []
-
-    if type(response['homeworks']) != dict:
-        message = 'Не верный формат ответа.'
-        logging.error(message)
+    logging.info('Проверка ответа API на корректность')
+    if not isinstance(response, dict):
+        message = 'Ответ API не является dict.'
         raise TypeError(message)
-
-    if 'homeworks' not in response:
-        message = 'Отсутствует ключ homeworks.'
-        logging.error(message)
+    if 'homeworks' not in response or 'current_date' not in response:
+        message = 'Нет ключа homeworks в ответе API.'
         raise KeyError(message)
-
-    if 'current_date' not in response:
-        message = 'Отсутствует ключ current_date.'
-        logging.error(message)
-        raise KeyError(message)
-
+    homeworks = response.get('homeworks')
     if type(homeworks) != list:
         message = 'Не верный формат значения "homeworks".'
         logging.error(message)
         raise TypeError(message)
 
-    if type(current_date) != list:
-        message = 'Не верный формат значения "current_date".'
-        logging.error(message)
-        raise TypeError(message)
-
+    if not isinstance(homeworks, list):
+        raise KeyError('homeworks не является list')
     return homeworks
 
 
@@ -142,32 +119,8 @@ def parse_status(homework):
         raise KeyError(message)
 
     verdict = HOMEWORK_VERDICTS[homework_status]
-    logging.debug('Изменился статус проверки.')
 
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-
-# def parse_status(homework):
-#     """Возвращает статут домашней работы."""
-#     homework_name = homework['homework_name']
-
-#     if 'homework_name' not in homework:
-#         message = 'Отсутствует значение по ключу homework_name'
-#         logging.error(message)
-#         raise KeyError(message)
-
-#     if 'status' not in homework:
-#         message = 'Отсутствует значение по ключу statu'
-#         logging.error(message)
-#         raise KeyError(message)
-#     homework_status = homework['status']
-#     verdict = HOMEWORK_VERDICTS[homework_status]
-    
-#     if homework_status not in HOMEWORK_VERDICTS:
-#         message = 'Полученный статус отсутствует в списке HOMEWORK_VERDICTS.'
-#         logging.error(message)
-#         raise KeyError(message)
-
-#     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
@@ -180,7 +133,6 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     prev_message = ''
-    # prev_status = ''
 
     while True:
         try:
@@ -192,15 +144,15 @@ def main():
                 if prev_message != message:
                     send_message(bot, message)
                     prev_message = message
+                else:
+                    message = 'Нет новых статусов.'
+                    timestamp = response.get(
+                        'current_date', int(time.time()))
                     logging.debug(message)
-            else:
-                message = 'Нет новых статусов.'
-                timestamp = response.get(
-                    'current_date', int(time.time()))
-                logging.debug(message)
+            logging.debug(message)
 
             timestamp = int(time.time())
-
+            logging.debug(message)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
