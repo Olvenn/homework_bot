@@ -11,6 +11,8 @@ import telegram
 
 from dotenv import load_dotenv
 
+from endpoints import ENDPOINT
+
 load_dotenv()
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
@@ -18,7 +20,7 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_PERIOD = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
+
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 
@@ -27,12 +29,6 @@ HOMEWORK_VERDICTS = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename='main.log',
-    format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
-)
 
 
 def check_tokens():
@@ -100,17 +96,12 @@ def check_response(response):
 
 def parse_status(homework):
     """Возвращает статут домашней работы."""
-    if 'homework_name' not in homework:
-        message = 'Отсутствует значение по ключу homework_name'
+    if 'homework_name' not in homework or 'status' not in homework:
+        message = 'Отсутствует значение по ключу homework_name или current_date.'
         logging.error(message)
         raise KeyError(message)
 
-    if 'status' not in homework:
-        message = 'Отсутствует значение по ключу status'
-        logging.error(message)
-        raise KeyError(message)
-
-    homework_name = homework['homework_name']
+    homework_name = homework.get('homework_name')
     homework_status = homework['status']
 
     if homework_status not in HOMEWORK_VERDICTS:
@@ -125,6 +116,11 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
+    logging.basicConfig(
+        level=logging.DEBUG,
+        filename='main.log',
+        format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
+    )
     if not check_tokens():
         message = 'Отсутствуют переменные окружения. Бот не работает!'
         logging.critical(message)
