@@ -97,7 +97,7 @@ def check_response(response):
 def parse_status(homework):
     """Возвращает статут домашней работы."""
     if 'homework_name' not in homework or 'status' not in homework:
-        message = 'Отсутствует значение по ключу homework_name или current_date.'
+        message = 'Отсутствует значение homework_name или current_date.'
         logging.error(message)
         raise KeyError(message)
 
