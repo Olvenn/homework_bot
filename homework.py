@@ -1,17 +1,16 @@
 import logging
 import os
-import time
-import requests
-import json
 import sys
-
+import time
+import json
 from http import HTTPStatus
 
+import requests
 import telegram
 
-from dotenv import load_dotenv
-
 from endpoints import ENDPOINT
+
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -84,7 +83,7 @@ def check_response(response):
         message = 'Нет ключа homeworks в ответе API.'
         raise KeyError(message)
     homeworks = response.get('homeworks')
-    if type(homeworks) != list:
+    if not isinstance(homeworks, list):
         message = 'Не верный формат значения "homeworks".'
         logging.error(message)
         raise TypeError(message)
@@ -102,7 +101,7 @@ def parse_status(homework):
         raise KeyError(message)
 
     homework_name = homework.get('homework_name')
-    homework_status = homework['status']
+    homework_status = homework.get('status')
 
     if homework_status not in HOMEWORK_VERDICTS:
         message = 'Полученный статус отсутствует в списке HOMEWORK_VERDICTS.'
@@ -116,11 +115,6 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-    logging.basicConfig(
-        level=logging.DEBUG,
-        filename='main.log',
-        format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
-    )
     if not check_tokens():
         message = 'Отсутствуют переменные окружения. Бот не работает!'
         logging.critical(message)
@@ -159,3 +153,9 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    filename='main.log',
+    format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
+)
